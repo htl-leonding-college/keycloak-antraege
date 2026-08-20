@@ -1,0 +1,48 @@
+= Keycloak für Schülerprojekte — Anträge
+:toc: left
+:toc-title: Inhaltsverzeichnis
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+:experimental:
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+Hier beantragt ihr für euer Schulprojekt die Anmeldung mit dem Schulkonto
+(OpenID Connect über `auth-dev.htl-leonding.ac.at`).
+
+[IMPORTANT]
+====
+Der Server wird gerade aufgebaut. Beantragen könnt ihr erst, wenn eure Lehrkraft den
+Betrieb freigibt — bis dahin ist dieses Repository eine Vorschau.
+====
+
+== So läuft es
+
+. link:schueler-leitfaden.adoc[*Leitfaden lesen*] — was ihr bekommt, was nicht, und wie
+  ihr die Anmeldung in Angular, Quarkus oder eine Web-Anwendung ohne Framework einbaut.
+. link:https://github.com/htl-leonding/keycloak-antraege/issues/new/choose[*Antrag stellen*]
+  — ein GitHub-Issue mit dem Formular „Client für ein Schülerprojekt beantragen".
+  Ihr braucht dafür nur ein GitHub-Konto.
+. Ihr bekommt die Antwort im Issue: Client-Kennung und, falls beantragt, die Zugangsdaten
+  für die Benutzerliste auf einem sicheren Weg (niemals im Issue selbst).
+
+== Die drei Regeln, an denen Anträge scheitern
+
+* Redirect-URIs brauchen einen *festen Host* — ein nacktes `*` wird abgelehnt.
+* Ein *Client Secret* gehört niemals in ein Frontend und niemals in ein Repository.
+* Die *Benutzerliste* einer Klasse gibt es nur mit Begründung — und nie direkt aus dem
+  Browser, sondern über euer Backend.
+
+Warum, steht im Leitfaden.
+
+== Demos
+
+Beispielprojekte (Quarkus-Backend, Angular-Frontend, Web-Frontend ohne Framework) folgen
+in einem eigenen Repository und werden hier verlinkt, sobald sie stehen.

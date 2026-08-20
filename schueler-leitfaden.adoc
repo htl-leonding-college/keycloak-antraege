@@ -1,0 +1,388 @@
+= Keycloak für Schülerprojekte — Handreichung
+:toc: left
+:toc-title: Inhaltsverzeichnis
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+:experimental:
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+Diese Handreichung beschreibt, wie ihr für euer Schulprojekt einen Zugang zu den
+Schulkonten bekommt: beantragen, einbauen, verwalten.
+
+[IMPORTANT]
+====
+Der Server wird gerade aufgebaut. Hostnamen und Realm-Namen in diesem Dokument stehen
+bereits fest, sind aber noch nicht in Betrieb. Bis dahin ist dieses Dokument eine
+Vorschau — beantragen könnt ihr erst, wenn euer Lehrer den Betrieb freigibt.
+====
+
+[[was]]
+== Was ihr bekommt — und was nicht
+
+Ihr bekommt einen *Client* im Realm `htl-leonding`. Damit könnt ihr euch in eurer
+Anwendung mit dem gewohnten Schulkonto anmelden — demselben, mit dem ihr euch am
+Schul-PC anmeldet.
+
+[cols="1,3",options="header"]
+|===
+|Ihr bekommt |Ihr bekommt *nicht*
+
+|Anmeldung mit dem Schulkonto (OpenID Connect)
+|Zugriff auf das Active Directory der Schule
+
+|Vorname, Nachname, Benutzername, E-Mail im Token
+|Matrikelnummer, `objectSid` oder andere interne Kennungen
+
+|auf Antrag: die Mitgliederliste *einer freigegebenen Gruppe*
+|die Liste aller Schüler:innen der Schule
+
+|einen eigenen Client, nur für euer Projekt
+|das Passwort irgendeines Benutzers — nie
+|===
+
+[NOTE]
+====
+Warum so eng? Weil hinter dem Keycloak die echten Konten der ganzen Schule stehen. Ein
+Projekt, das mehr sehen darf als es braucht, ist kein Projekt mehr, sondern ein Risiko.
+Alles, was ihr für eure Anwendung wirklich braucht, bekommt ihr — ihr müsst nur sagen,
+was das ist.
+====
+
+[[beantragen]]
+== Client beantragen
+
+Anträge laufen über ein *GitHub-Issue* mit Vorlage. Kein Mail-Ping-Pong, und ihr könnt
+später nachlesen, was für euer Projekt vereinbart wurde.
+
+[[antrag-daten]]
+=== Was ihr angeben müsst
+
+[cols="1,2,2",options="header"]
+|===
+|Feld |Bedeutung |Beispiel
+
+|Projektname
+|wird Teil eurer Client-Kennung, klein und ohne Leerzeichen
+|`notenrechner`
+
+|Teammitglieder
+|Vor- und Nachname aller, die daran arbeiten
+|`Max Muster, Lisa Beispiel`
+
+|Betreuende Lehrkraft
+|wer das Projekt betreut
+|`Prof. Stütz`
+
+|Redirect-URIs
+|wohin Keycloak nach der Anmeldung zurückschickt — *jede* Adresse einzeln
+|`http://localhost:4200/callback`
+
+|Benutzerliste nötig?
+|ja/nein, und wenn ja: *welche* Gruppe
+|`ja, /classes/5BHITM`
+
+|Projektende
+|wann der Client gelöscht werden kann
+|`Juni 2027`
+|===
+
+[[antrag-redirect]]
+=== Redirect-URIs richtig angeben
+
+Die Redirect-URI ist die Adresse, an die Keycloak den Anmelde-Code zurückschickt. Sie
+ist eine Sicherheitsgrenze: Wer sie manipulieren kann, bekommt fremde Tokens geschickt.
+
+[cols="1,2",options="header"]
+|===
+|Angabe |Bewertung
+
+|`http://localhost:4200/callback`
+|gut — genau eine Adresse
+
+|`http://localhost:4200/*`
+|in Ordnung — fester Host, Platzhalter nur im Pfad
+
+|`https://notenrechner.htl-leonding.ac.at/*`
+|in Ordnung — fester Host
+
+|`*`
+|*wird abgelehnt.* Erlaubt jeden Host der Welt und ist damit Token-Diebstahl auf Ansage
+|===
+
+[TIP]
+====
+Gebt gleich alle Ports an, die ihr braucht — Angular (`4200`), Vite (`5173`), Quarkus Dev
+(`8080`). Nachträge sind möglich, kosten aber wieder einen Antrag.
+====
+
+[[antrag-antwort]]
+=== Was ihr zurückbekommt
+
+* eure Client-Kennung, z. B. `notenrechner-frontend`
+* die Kennung des Backend-Clients, z. B. `notenrechner-backend`
+* nur bei „Benutzerliste ja": ein *Client Secret* für das Dienstkonto
+
+[CAUTION]
+====
+Das Client Secret gehört ausschließlich ins Backend und niemals in ein Git-Repository.
+Nicht in den Quellcode, nicht in `application.properties`, nicht „nur kurz zum Testen".
+Wer es einmal eingecheckt hat, bekommt ein neues — der alte Wert gilt dann als verbrannt.
+====
+
+[[programmieren]]
+== Programmieren
+
+[[flow]]
+=== Der Ablauf, den ihr verwendet
+
+*Authorization Code Flow mit PKCE.* Kurz, was passiert:
+
+. Eure Anwendung schickt den Browser zu Keycloak, mit einem selbst erzeugten Geheimnis
+  (`code_verifier`), von dem nur der Hash (`code_challenge`) mitgeht.
+. Der Benutzer meldet sich bei Keycloak an — *nicht* bei euch. Ihr seht das Passwort nie.
+. Keycloak schickt den Browser zurück an eure Redirect-URI, mit einem einmaligen Code.
+. Eure Anwendung tauscht den Code gegen Tokens und weist sich dabei mit dem
+  `code_verifier` aus.
+
+Der letzte Schritt ist der Grund für PKCE: Ein abgefangener Code allein nützt niemandem,
+weil der Verifier fehlt.
+
+[WARNING]
+====
+*Nicht* verwenden — wird serverseitig geblockt oder ist schlicht falsch:
+
+* Implicit Flow (`response_type=token`) — gilt seit Jahren als überholt
+* Resource Owner Password Credentials — eure Anwendung würde das Schulpasswort sehen
+* Client Secret in einem Frontend — ein Geheimnis im Browser ist keines
+====
+
+[[frontend]]
+=== Frontend
+
+Nehmt eine *generische* OIDC-Bibliothek, keine Keycloak-spezifische. Das Gelernte bleibt
+dann gültig, falls die Schule später den Identity Provider wechselt.
+
+[cols="1,2",options="header"]
+|===
+|Stack |Empfehlung
+
+|Angular
+|`angular-auth-oidc-client`
+
+|React, Vue, TypeScript ohne Framework
+|`oidc-client-ts`
+
+|Reines JavaScript zum Lernen
+|PKCE von Hand mit der Web Crypto API — rund 30 Zeilen, und ihr versteht den Flow
+wirklich
+|===
+
+Alle Endpunkte findet ihr im Discovery-Dokument — schreibt sie nicht ab, ladet sie:
+
+[source,bash]
+----
+curl https://auth-dev.htl-leonding.ac.at/realms/htl-leonding/.well-known/openid-configuration
+----
+
+Beispielkonfiguration (Angular):
+
+[source,typescript]
+----
+{
+  authority:   'https://auth-dev.htl-leonding.ac.at/realms/htl-leonding',
+  redirectUrl: 'http://localhost:4200/callback',
+  clientId:    'notenrechner-frontend',
+  scope:       'openid profile email',
+  responseType: 'code'   // Authorization Code, PKCE macht die Bibliothek
+}
+----
+
+[[backend]]
+=== Backend
+
+Euer Backend muss jedes Token *prüfen*, bevor es ihm glaubt. Ein Token ist ein Stück
+Text — wer nicht prüft, glaubt jedem.
+
+[cols="1,3",options="header"]
+|===
+|Prüfung |Warum
+
+|Signatur gegen den JWKS-Endpunkt
+|sonst kann sich jeder selbst ein Token schreiben
+
+|`iss` — der Aussteller
+|sonst zählt auch ein Token von einem fremden Keycloak
+
+|`exp` — die Gültigkeit
+|sonst gelten abgelaufene Tokens ewig
+
+|`aud` und `azp` — für wen das Token ausgestellt wurde
+|*ohne diese Prüfung akzeptiert ihr Tokens aus fremden Schulprojekten*
+|===
+
+[IMPORTANT]
+====
+Die `aud`-Prüfung ist der Grund, warum jedes Projekt einen *eigenen* Client bekommt.
+Prüft ihr sie nicht, könnte jemand sich in seinem eigenen Projekt anmelden und das Token
+an euer Backend schicken — und euer Backend würde es nehmen.
+====
+
+Quarkus erledigt das mit ein paar Zeilen:
+
+[source,properties]
+----
+quarkus.oidc.auth-server-url=https://auth-dev.htl-leonding.ac.at/realms/htl-leonding
+quarkus.oidc.client-id=notenrechner-backend
+quarkus.oidc.application-type=service
+quarkus.oidc.token.audience=notenrechner-backend
+----
+
+[[benutzerliste]]
+=== Benutzerliste einer Klasse
+
+Nur wenn im Antrag beantragt und freigegeben.
+
+[source,bash]
+----
+# 1. Token für das Dienstkonto holen — im Backend, nie im Browser
+curl -X POST https://auth-dev.htl-leonding.ac.at/realms/htl-leonding/protocol/openid-connect/token \
+  -d grant_type=client_credentials \
+  -d client_id=notenrechner-backend \
+  -d client_secret=$CLIENT_SECRET
+
+# 2. Mitglieder der freigegebenen Gruppe abrufen
+curl -H "Authorization: Bearer $TOKEN" \
+  https://auth-dev.htl-leonding.ac.at/admin/realms/htl-leonding/groups/$GRUPPEN_ID/members
+----
+
+[CAUTION]
+====
+Dieser Aufruf darf *niemals* aus dem Browser kommen. Er braucht das Client Secret, und
+ein Secret in einer Web-Anwendung steht mit zwei Klicks in den Entwicklerwerkzeugen. Der
+Weg führt zwingend über euer Backend, das die Liste dann gefiltert an das Frontend
+weitergibt.
+
+Fragt ihr eine Gruppe ab, die nicht freigegeben ist, kommt `403` — das ist kein Fehler in
+eurem Code, sondern die Grenze.
+====
+
+[[administrieren]]
+== Administrieren
+
+Wie viel ihr selbst verwaltet, hängt von der Größe des Projekts ab.
+
+[[admin-klein]]
+=== Einfaches Projekt
+
+Ihr habt einen Client im Realm `htl-leonding` und verwaltet ihn nicht selbst. Änderungen
+— neue Redirect-URI, weiterer Port, zusätzliche Gruppe — laufen über ein neues Issue.
+
+Das ist kein Misstrauen: Im Realm `htl-leonding` hängen die echten Schulkonten. Wer dort
+Rechte hat, hat sie für alle.
+
+[[admin-gross]]
+=== Wichtiges Projekt mit eigenem Realm
+
+Größere Projekte bekommen einen *eigenen Realm*. Dort seid ihr Realm-Admin und könnt
+Clients, Rollen und Flows selbst anlegen. Die Anmeldung läuft über Identity Brokering
+weiter gegen `htl-leonding`.
+
+In eurem Realm landen nur Personen, die sich tatsächlich angemeldet haben — nicht die
+ganze Schule.
+
+[IMPORTANT]
+====
+Deshalb gilt: Wenn euer Projekt die *vollständige* Liste einer Klasse braucht, bekommt ihr
+*keinen* eigenen Realm, sondern Clients im Realm `htl-leonding`. In einem eigenen Realm
+wäre die Liste immer unvollständig — es stehen nur die drin, die sich schon einmal
+angemeldet haben.
+
+Schreibt den Bedarf an Benutzerlisten also in den Antrag. Er entscheidet, welchen der beiden
+Wege ihr bekommt.
+====
+
+[cols="1,1",options="header"]
+|===
+|Ihr dürft |Ihr dürft nicht
+
+|Clients, Rollen, Gruppen, Flows in eurem Realm anlegen
+|einen LDAP-Provider einrichten — das AD ist für euch nicht erreichbar
+
+|Rollen an angemeldete Benutzer vergeben
+|Skript-Mapper oder Skript-Authenticator verwenden — abgeschaltet
+
+|die Anmeldemaske gestalten
+|Einstellungen in `htl-leonding` oder `master` ändern
+|===
+
+[[admin-console]]
+=== Zugang zur Admin-Console
+
+[IMPORTANT]
+====
+Die Console *eures eigenen Projektrealms* erreicht ihr von überall, auch von zu Hause:
+
+....
+https://auth-dev.htl-leonding.ac.at/admin/<euer-realm>/console/
+....
+
+Beschränkt ist nur die Console des `master`-Realms — die Serververwaltung, die ohnehin
+niemandem außer dem Betreuer offensteht. Sie liegt unter `/admin/master/console/` und ist
+nur aus dem Schulnetz erreichbar.
+
+Eure Anwendungen — Frontend wie Backend — erreichen Keycloak ebenfalls von überall.
+====
+
+Welche Wege in die Serververwaltung führen, steht in `documentation/admin-zugang.adoc` —
+das betrifft den Betreuer, nicht euch.
+
+[[fehler]]
+== Häufige Fehler
+
+[cols="1,2,2",options="header"]
+|===
+|Meldung |Ursache |Lösung
+
+|`Invalid parameter: redirect_uri`
+|Die Adresse steht nicht am Client — oft ein anderer Port oder `http` statt `https`
+|Genau diese Adresse per Issue nachtragen lassen
+
+|CORS-Fehler im Browser
+|Web Origin fehlt
+|Im Issue angeben, von welcher Adresse das Frontend lädt
+
+|`401 Unauthorized` am Backend
+|Kein Token, abgelaufen oder Signatur falsch
+|Token auf https://jwt.io[jwt.io] ansehen: `exp` abgelaufen? `iss` richtig?
+
+|`403 Forbidden` bei der Benutzerliste
+|Gruppe ist für euch nicht freigegeben
+|Freigabe beantragen — oder ihr fragt die falsche Gruppe ab
+
+|Token wird von einem *anderen* Projekt akzeptiert
+|`aud` wird nicht geprüft
+|`aud`-Prüfung einschalten. Das ist ein Fehler in eurem Backend, nicht am Server
+
+|Console lädt nicht, Adresse enthält `/admin/master/`
+|Das ist die Serververwaltung, nicht euer Realm
+|`/admin/<euer-realm>/console/` aufrufen. Die Serververwaltung ist auf das Schulnetz
+beschränkt und für euch ohnehin gesperrt
+|===
+
+[[ende]]
+== Am Projektende
+
+Sagt Bescheid, wenn das Projekt fertig ist. Der Client wird dann gelöscht.
+
+Ein Client, den niemand mehr betreut, dessen Redirect-URI aber noch auf eine Domain
+zeigt, die inzwischen jemand anderem gehört, ist ein offenes Tor zu echten Schulkonten.
+Das Aufräumen ist kein Formalismus.

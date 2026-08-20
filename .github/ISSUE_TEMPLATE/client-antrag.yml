@@ -1,0 +1,110 @@
+name: Client für ein Schülerprojekt beantragen
+description: Zugang zu den Schulkonten für euer Projekt anfordern
+title: "[Client] <Projektname>"
+labels: ["client-antrag"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lest vorher den [Leitfaden](https://github.com/htl-leonding/keycloak-antraege/blob/main/schueler-leitfaden.adoc), besonders den
+        Abschnitt „Redirect-URIs richtig angeben". Anträge mit `*` als Redirect-URI werden
+        abgelehnt.
+
+  - type: input
+    id: projektname
+    attributes:
+      label: Projektname
+      description: Klein geschrieben, ohne Leerzeichen. Wird Teil der Client-Kennung.
+      placeholder: notenrechner
+    validations:
+      required: true
+
+  - type: input
+    id: team
+    attributes:
+      label: Teammitglieder
+      description: Vor- und Nachname aller, die am Projekt arbeiten.
+      placeholder: Max Muster, Lisa Beispiel
+    validations:
+      required: true
+
+  - type: input
+    id: betreuung
+    attributes:
+      label: Betreuende Lehrkraft
+    validations:
+      required: true
+
+  - type: textarea
+    id: redirect
+    attributes:
+      label: Redirect-URIs
+      description: |
+        Eine Adresse pro Zeile. Fester Host, Platzhalter höchstens im Pfad.
+        Gebt gleich alle Ports an, die ihr braucht.
+      placeholder: |
+        http://localhost:4200/callback
+        http://localhost:5173/callback
+    validations:
+      required: true
+
+  - type: textarea
+    id: weborigins
+    attributes:
+      label: Web Origins
+      description: Von welchen Adressen lädt euer Frontend? Nötig, damit der Browser die Aufrufe zulässt.
+      placeholder: |
+        http://localhost:4200
+    validations:
+      required: false
+
+  - type: dropdown
+    id: benutzerliste
+    attributes:
+      label: Braucht ihr eine Benutzerliste?
+      description: |
+        Nur ankreuzen, wenn eure Anwendung die Mitglieder einer Gruppe wirklich auflisten muss.
+        Für „Anmelden und den eigenen Namen anzeigen" braucht ihr das nicht.
+      options:
+        - "Nein"
+        - "Ja"
+    validations:
+      required: true
+
+  - type: input
+    id: gruppe
+    attributes:
+      label: Welche Gruppe?
+      description: Nur ausfüllen, wenn oben „Ja". Genau eine Gruppe pro Zeile.
+      placeholder: /classes/5BHITM
+    validations:
+      required: false
+
+  - type: textarea
+    id: zweck
+    attributes:
+      label: Wozu braucht ihr die Liste?
+      description: Zwei bis drei Sätze. Nur ausfüllen, wenn oben „Ja".
+    validations:
+      required: false
+
+  - type: input
+    id: projektende
+    attributes:
+      label: Voraussichtliches Projektende
+      description: Wann darf der Client gelöscht werden?
+      placeholder: Juni 2027
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: bestaetigung
+    attributes:
+      label: Bestätigung
+      options:
+        - label: Wir haben den Leitfaden gelesen.
+          required: true
+        - label: Unsere Redirect-URIs haben einen festen Host, kein nacktes `*`.
+          required: true
+        - label: Ein Client Secret kommt niemals ins Frontend und niemals in ein Repository.
+          required: true

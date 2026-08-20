@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Fragen zum Leitfaden oder zur Anbindung
+    url: https://github.com/htl-leonding/keycloak-antraege/blob/main/schueler-leitfaden.adoc
+    about: Erst den Leitfaden lesen — die meisten Fragen sind dort beantwortet.
