@@ -80,7 +80,7 @@ später nachlesen, was für euer Projekt vereinbart wurde.
 
 |Betreuende Lehrkraft
 |wer das Projekt betreut
-|`Prof. Stütz`
+|`Prof. Mustermann`
 
 |Redirect-URIs
 |wohin Keycloak nach der Anmeldung zurückschickt — *jede* Adresse einzeln
