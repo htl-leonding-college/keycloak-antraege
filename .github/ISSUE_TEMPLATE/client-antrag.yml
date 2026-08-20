@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Lest vorher den [Leitfaden](https://github.com/htl-leonding/keycloak-antraege/blob/main/schueler-leitfaden.adoc), besonders den
+        Lest vorher den [Leitfaden](https://github.com/htl-leonding-college/keycloak-antraege/blob/main/schueler-leitfaden.adoc), besonders den
         Abschnitt „Redirect-URIs richtig angeben". Anträge mit `*` als Redirect-URI werden
         abgelehnt.
 

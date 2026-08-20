@@ -27,7 +27,7 @@ Betrieb freigibt — bis dahin ist dieses Repository eine Vorschau.
 
 . link:schueler-leitfaden.adoc[*Leitfaden lesen*] — was ihr bekommt, was nicht, und wie
   ihr die Anmeldung in Angular, Quarkus oder eine Web-Anwendung ohne Framework einbaut.
-. link:https://github.com/htl-leonding/keycloak-antraege/issues/new/choose[*Antrag stellen*]
+. link:https://github.com/htl-leonding-college/keycloak-antraege/issues/new/choose[*Antrag stellen*]
   — ein GitHub-Issue mit dem Formular „Client für ein Schülerprojekt beantragen".
   Ihr braucht dafür nur ein GitHub-Konto.
 . Ihr bekommt die Antwort im Issue: Client-Kennung und, falls beantragt, die Zugangsdaten
