@@ -19,8 +19,9 @@ Hier beantragt ihr für euer Schulprojekt die Anmeldung mit dem Schulkonto
 
 [IMPORTANT]
 ====
-Der Server wird gerade aufgebaut. Beantragen könnt ihr erst, wenn eure Lehrkraft den
-Betrieb freigibt — bis dahin ist dieses Repository eine Vorschau.
+*Der Server läuft*, die Anmeldung mit dem Schulkonto ist erprobt. Zwei Einschränkungen:
+Der Hostname trägt noch `-dev`, und *Benutzerlisten gibt es noch nicht* — den Bedarf
+dafür meldet ihr trotzdem im Antrag.
 ====
 
 == So läuft es
@@ -38,11 +39,18 @@ Betrieb freigibt — bis dahin ist dieses Repository eine Vorschau.
 * Redirect-URIs brauchen einen *festen Host* — ein nacktes `*` wird abgelehnt.
 * Ein *Client Secret* gehört niemals in ein Frontend und niemals in ein Repository.
 * Die *Benutzerliste* einer Klasse gibt es nur mit Begründung — und nie direkt aus dem
-  Browser, sondern über euer Backend.
+  Browser, sondern über euer Backend. Für „was darf die angemeldete Person sehen" braucht
+  ihr sie gar nicht: Klasse und Rolle stehen im Token.
 
 Warum, steht im Leitfaden.
 
 == Demos
 
-Beispielprojekte (Quarkus-Backend, Angular-Frontend, Web-Frontend ohne Framework) folgen
-in einem eigenen Repository und werden hier verlinkt, sobald sie stehen.
+link:https://github.com/htl-leonding-college/keycloak-demos[*keycloak-demos*] — lauffähig
+gegen diesen Server:
+
+* `backend-quarkus` — prüft Tokens, meldet sich nie selbst an. Zeigt die `aud`-Prüfung und
+  die Autorisierung über Klasse und Rolle
+* `frontend-vanilla` — eine HTML-Datei, kein Build, PKCE von Hand mit der Web Crypto API
+
+Ein Angular-Frontend folgt.

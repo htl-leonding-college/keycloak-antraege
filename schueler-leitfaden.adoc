@@ -20,9 +20,18 @@ Schulkonten bekommt: beantragen, einbauen, verwalten.
 
 [IMPORTANT]
 ====
-Der Server wird gerade aufgebaut. Hostnamen und Realm-Namen in diesem Dokument stehen
-bereits fest, sind aber noch nicht in Betrieb. Bis dahin ist dieses Dokument eine
-Vorschau — beantragen könnt ihr erst, wenn euer Lehrer den Betrieb freigibt.
+*Der Server läuft.* Im Realm `htl-leonding` stehen die Konten der ganzen Schule, die
+Klassengruppen entstehen täglich aus dem Verzeichnis, und die Anmeldung ist mit einem
+echten Schulkonto erprobt. Lauffähige Beispiele liegen unter
+https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos].
+
+Zwei Vorbehalte, die euch betreffen:
+
+* Der Name trägt noch `-dev`. Fällt später die Entscheidung für einen endgültigen
+  Hostnamen, ändert sich die `authority`-URL in eurer Konfiguration — eine Zeile, und ihr
+  erfahrt es rechtzeitig in eurem Issue.
+* *Benutzerlisten gibt es noch nicht* (siehe <<benutzerliste>>). Anmelden, Klasse und
+  Rolle auswerten: alles verfügbar. Die Mitglieder einer Gruppe auflisten: noch nicht.
 ====
 
 [[was]]
@@ -42,7 +51,10 @@ Schul-PC anmeldet.
 |Vorname, Nachname, Benutzername, E-Mail im Token
 |Matrikelnummer, `objectSid` oder andere interne Kennungen
 
-|auf Antrag: die Mitgliederliste *einer freigegebenen Gruppe*
+|*Klasse und Rolle im Token* — ohne Antrag, siehe <<token>>
+|die Klasse einer *anderen* Person
+
+|auf Antrag: die Mitgliederliste *einer freigegebenen Gruppe* (noch nicht verfügbar)
 |die Liste aller Schüler:innen der Schule
 
 |einen eigenen Client, nur für euer Projekt
@@ -87,8 +99,8 @@ später nachlesen, was für euer Projekt vereinbart wurde.
 |`http://localhost:4200/callback`
 
 |Benutzerliste nötig?
-|ja/nein, und wenn ja: *welche* Gruppe
-|`ja, /classes/5BHITM`
+|ja/nein, und wenn ja: *welche* Gruppe — voller Pfad
+|`ja, /classes/IF/5BHIF`
 
 |Projektende
 |wann der Client gelöscht werden kann
@@ -206,6 +218,56 @@ Beispielkonfiguration (Angular):
 }
 ----
 
+[[token]]
+=== Was im Token steht — Klasse und Rolle
+
+Das Token trägt mehr als den Namen. *Ihr müsst dafür nichts beantragen und nichts
+konfigurieren* — der Realm gibt es jedem Client mit:
+
+[source,json]
+----
+{
+  "preferred_username": "if200123",
+  "groups": ["/classes/IF/5BHIF"],
+  "realm_access": { "roles": ["teacher", "default-roles-htl-leonding", "..."] }
+}
+----
+
+[cols="1,3",options="header"]
+|===
+|Claim |Bedeutung
+
+|`groups`
+|Die Klassengruppe als voller Pfad `/classes/<ABTEILUNG>/<KLASSE>`, bei Lehrkräften
+`/staff/teachers`. Die Klasse kommt aus dem Verzeichnis der Schule und wird täglich
+abgeglichen
+
+|`realm_access.roles`
+|enthält `teacher`, wenn die angemeldete Person eine Lehrkraft ist
+|===
+
+[IMPORTANT]
+====
+*Das ist der Grund, warum die meisten Projekte keine Benutzerliste brauchen.* Wer
+entscheiden will, was die *angemeldete* Person sehen darf — ihre Klasse, ihre Rolle —,
+liest das aus dem Token. Kein Aufruf beim Server, kein Dienstkonto, kein Client Secret.
+
+Eine Benutzerliste braucht nur, wer etwas über Personen wissen muss, die gerade *nicht*
+angemeldet sind. Das ist selten.
+====
+
+[WARNING]
+====
+*Rechnet damit, dass `groups` fehlt.* Es ist ein gültiger Zustand, kein Fehler:
+
+* Lehrkräfte haben keine Klassengruppe, sondern `/staff/teachers`.
+* Wer sich zum ersten Mal anmeldet, bekommt seine Gruppe erst beim nächsten Abgleich.
+* Test- und Sonderkonten haben nie eine.
+
+Eine Anwendung, die ohne Klasse abbricht, fällt am ersten Schultag um. Behandelt den Fall
+wie „unbekannte Klasse", nicht wie einen Absturz.
+====
+
 [[backend]]
 === Backend
 
@@ -244,12 +306,41 @@ quarkus.oidc.auth-server-url=https://auth-dev.htl-leonding.ac.at/realms/htl-leon
 quarkus.oidc.client-id=notenrechner-backend
 quarkus.oidc.application-type=service
 quarkus.oidc.token.audience=notenrechner-backend
+
+# Ohne diese Zeile schlaegt @RolesAllowed fehl - siehe Kasten unten
+quarkus.oidc.roles.role-claim-path=realm_access/roles
 ----
+
+[CAUTION]
+====
+*Die letzte Zeile ist nicht optional, und ihre Abwesenheit kostet euch einen Nachmittag.*
+
+Quarkus sucht die Rollen ohne diese Angabe zuerst im `groups`-Claim — und hört auf,
+sobald der nicht leer ist. `realm_access/roles` schaut es sich nur an, wenn `groups`
+*leer* ist. Bei uns ist `groups` immer gefüllt: Dort steht eure Klasse.
+
+Die Folge: `@RolesAllowed("teacher")` antwortet mit `403`, obwohl die Rolle im Token
+steht. Der Fehler sieht aus wie ein fehlendes Recht und ist eine Zeile Konfiguration.
+====
 
 [[benutzerliste]]
 === Benutzerliste einer Klasse
 
-Nur wenn im Antrag beantragt und freigegeben.
+[WARNING]
+====
+*Diesen Weg gibt es noch nicht.* Die fein granularen Rechte, die ein Dienstkonto auf
+*genau eine* Gruppe beschränken, werden gerade gebaut. Bis dahin wird kein Dienstkonto
+ausgegeben.
+
+*Beantragt den Bedarf trotzdem.* Das Formular fragt danach, und die eingegangenen Anträge
+entscheiden, wie der Zugriff zugeschnitten wird — wer sich erst meldet, wenn es fertig
+ist, bekommt etwas, das zu seinem Projekt nicht passt.
+
+Und prüft vorher <<token>>: Für „was darf die angemeldete Person sehen" braucht ihr diesen
+Weg nicht.
+====
+
+So wird er aussehen, wenn er freigegeben ist:
 
 [source,bash]
 ----
@@ -342,8 +433,7 @@ nur aus dem Schulnetz erreichbar.
 Eure Anwendungen — Frontend wie Backend — erreichen Keycloak ebenfalls von überall.
 ====
 
-Welche Wege in die Serververwaltung führen, steht in `documentation/admin-zugang.adoc` —
-das betrifft den Betreuer, nicht euch.
+Welche Wege in die Serververwaltung führen, weiß der Betreuer — das betrifft euch nicht.
 
 [[fehler]]
 == Häufige Fehler
@@ -371,6 +461,14 @@ das betrifft den Betreuer, nicht euch.
 |Token wird von einem *anderen* Projekt akzeptiert
 |`aud` wird nicht geprüft
 |`aud`-Prüfung einschalten. Das ist ein Fehler in eurem Backend, nicht am Server
+
+|`403` bei `@RolesAllowed`, obwohl die Rolle im Token steht
+|Quarkus liest die Rollen aus `groups` — und dort steht eure Klasse, nicht die Rolle
+|`quarkus.oidc.roles.role-claim-path=realm_access/roles` setzen, siehe <<backend>>
+
+|`groups` fehlt im Token, Anwendung stürzt ab
+|Nicht jede Person hat eine Klassengruppe — Lehrkräfte, neue und lokale Konten
+|Den Fall abfangen statt abzubrechen, siehe <<token>>
 
 |Console lädt nicht, Adresse enthält `/admin/master/`
 |Das ist die Serververwaltung, nicht euer Realm
