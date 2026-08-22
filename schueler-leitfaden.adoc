@@ -218,6 +218,49 @@ Beispielkonfiguration (Angular):
 }
 ----
 
+[[refresh]]
+=== Refresh Token — euer Access Token lebt fünf Minuten
+
+Das Access Token dieses Realms ist nach *300 Sekunden* ungültig. Ohne Erneuerung fällt eure
+Anwendung danach in `401` — mitten im Betrieb, ohne dass jemand etwas falsch gemacht hätte.
+Dafür gibt es das *Refresh Token*: Ihr tauscht es am Token-Endpunkt gegen ein frisches Paar
+(`grant_type=refresh_token`). Es lebt so lange wie die Sitzung im Keycloak — hier 30 Minuten
+ohne Aktivität.
+
+Bibliotheken erledigen das, aber meist nur, wenn ihr es *einschaltet*:
+`automaticSilentRenew` bei `oidc-client-ts`, `silentRenew` zusammen mit `useRefreshToken`
+bei `angular-auth-oidc-client`. Prüft den Namen in der Doku eurer Version.
+
+Baut ihr es selbst, sind es drei Punkte — und alle drei sind Erfahrung, nicht Geschmack:
+
+Prüft *vor* dem Aufruf, statt nach einem `401` zu wiederholen::
+Ein Wiederholungsversuch schickt dieselbe Anfrage zweimal. Alles, was der erste Aufruf
+schon getan hat, bevor er am Token scheiterte, passiert dann doppelt — eine angelegte
+Bestellung, eine verschickte Mail, eine gezählte Stimme.
+
+Erneuert mit *Vorlauf*, etwa dreißig Sekunden::
+Sonst läuft ein Token *während* des Netzwegs ab: Beim Absenden war es gültig, beim
+Ankommen nicht mehr. Dieser Fehler tritt selten auf und lässt sich nicht nachstellen — die
+schlechteste Kombination, die ein Fehler haben kann.
+
+Teilt einen laufenden Tausch, statt ihn zu wiederholen::
+Starten drei gleichzeitige Aufrufe drei Erneuerungen mit demselben Refresh Token, geht das
+gut — bis der Server *Refresh Token Rotation* einschaltet. Dann entwertet der erste Tausch
+die beiden anderen, und eure Anwendung wirft Benutzer scheinbar zufällig hinaus. Merkt
+euch die laufende Erneuerung und wartet auf sie.
+
+[TIP]
+====
+Das Refresh Token ist *kein* Client Secret. Der Tausch funktioniert ohne Geheimnis, weil
+euer Frontend ein öffentlicher Client ist — die Bindung stellt Keycloak über die
+`client_id` her. Trotzdem gilt: Es gehört in den Speicher eurer Anwendung, nicht in eine
+URL und nicht in ein Log.
+
+Zum Anschauen: `frontend-vanilla/index.html` in
+https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos] — rund dreißig
+Zeilen, ohne Bibliothek.
+====
+
 [[token]]
 === Was im Token steht — Klasse und Rolle
 
@@ -453,6 +496,10 @@ Welche Wege in die Serververwaltung führen, weiß der Betreuer — das betrifft
 |`401 Unauthorized` am Backend
 |Kein Token, abgelaufen oder Signatur falsch
 |Token auf https://jwt.io[jwt.io] ansehen: `exp` abgelaufen? `iss` richtig?
+
+|`401` nach ein paar Minuten Benutzung
+|Das Access Token lebt 300 Sekunden, eure Anwendung erneuert es nicht
+|Refresh Token einsetzen, siehe <<refresh>>
 
 |`403 Forbidden` bei der Benutzerliste
 |Gruppe ist für euch nicht freigegeben
