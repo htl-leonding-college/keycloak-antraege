@@ -168,6 +168,18 @@ Wer es einmal eingecheckt hat, bekommt ein neues — der alte Wert gilt dann als
 [[programmieren]]
 == Programmieren
 
+[TIP]
+====
+*Fangt nicht bei null an.* Unter
+https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos] liegen lauffähige
+Beispiele, die gegen genau diesen Server laufen — ein Quarkus-Backend, ein Frontend ohne
+Framework und eines mit Angular, aufgebaut in fünf Stufen vom öffentlichen Endpunkt bis
+zur Benutzerliste.
+
+Der schnellste Weg zu einem laufenden Projekt ist, die Stufe herzunehmen, die eurem
+Vorhaben entspricht, und die Client-Kennung durch eure eigene zu ersetzen.
+====
+
 [[flow]]
 === Der Ablauf, den ihr verwendet
 
