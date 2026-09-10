@@ -19,9 +19,9 @@ Hier beantragt ihr für euer Schulprojekt die Anmeldung mit dem Schulkonto
 
 [IMPORTANT]
 ====
-*Der Server läuft*, die Anmeldung mit dem Schulkonto ist erprobt. Zwei Einschränkungen:
-Der Hostname trägt noch `-dev`, und *Benutzerlisten gibt es noch nicht* — den Bedarf
-dafür meldet ihr trotzdem im Antrag.
+*Der Server läuft*, die Anmeldung mit dem Schulkonto ist erprobt, und auch
+*Benutzerlisten sind verfügbar*: Ein Projekt kann die Mitglieder der Gruppen abrufen, die
+ihm freigegeben wurden. Den Bedarf dafür meldet ihr im Antrag.
 ====
 
 == So läuft es

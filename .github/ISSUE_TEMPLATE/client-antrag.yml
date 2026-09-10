@@ -69,8 +69,7 @@ body:
         Nur ankreuzen, wenn eure Anwendung die Mitglieder einer Gruppe wirklich auflisten muss.
         Für „Anmelden und den eigenen Namen anzeigen" braucht ihr das nicht — und auch nicht,
         um Klasse oder Rolle der angemeldeten Person auszuwerten: Beides steht im Token.
-        Hinweis: Dieser Zugriff wird gerade gebaut. Meldet den Bedarf trotzdem an, er
-        entscheidet über den Zuschnitt.
+        Euer Dienstkonto sieht ausschließlich die hier genannten Gruppen, nicht den ganzen Realm.
       options:
         - "Nein"
         - "Ja"
