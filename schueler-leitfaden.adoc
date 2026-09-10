@@ -43,18 +43,29 @@ Schul-PC anmeldet.
 |Anmeldung mit dem Schulkonto (OpenID Connect)
 |Zugriff auf das Active Directory der Schule
 
-|Vorname, Nachname, Benutzername, E-Mail im Token
+|Benutzername und E-Mail im Token, meist auch Vor- und Nachname
 |Matrikelnummer, `objectSid` oder andere interne Kennungen
 
 |*Klasse und Rolle im Token* — ohne Antrag, siehe <<token>>
 |die Klasse einer *anderen* Person
 
-|auf Antrag: die Mitgliederliste *einer freigegebenen Gruppe* (noch nicht verfügbar)
-|die Liste aller Schüler:innen der Schule
+|auf Antrag: die Mitgliederliste *einer freigegebenen Gruppe*
+|die Liste aller Schüler der Schule
 
 |einen eigenen Client, nur für euer Projekt
 |das Passwort irgendeines Benutzers — nie
 |===
+
+[WARNING]
+====
+*„Meist" ist wörtlich gemeint.* Bei einem Teil der Lehrerkonten sind Vor- und Nachname im
+Verzeichnis der Schule nicht gepflegt — sie kommen dann auch nicht im Token an. Bei
+Schülerkonten ist das nicht vorgekommen.
+
+Rechnet also damit, dass `given_name` und `family_name` fehlen können, und zeigt in dem
+Fall `preferred_username` oder `email` an statt einer leeren Zeile. Dasselbe gilt für
+`groups`, siehe <<token>>.
+====
 
 [NOTE]
 ====
