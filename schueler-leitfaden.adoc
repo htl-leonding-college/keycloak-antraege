@@ -465,6 +465,219 @@ Fragt ihr eine Gruppe ab, die nicht freigegeben ist, kommt `403` — das ist kei
 eurem Code, sondern die Grenze.
 ====
 
+[[nachmessen]]
+== Selbst nachmessen — den Server ohne eure Anwendung befragen
+
+Wenn etwas nicht funktioniert, gibt es zwei Möglichkeiten: Euer Code ist falsch, oder der
+Server ist anders eingerichtet, als ihr denkt. Solange ihr das nicht getrennt habt, sucht
+ihr womöglich stundenlang im falschen Haus.
+
+Die Trennung ist billig. Holt euch ein Token *von Hand* — mit `curl`, dem HTTP-Client von
+IntelliJ, `httpie` oder `httpyac`. Kommt eines heraus und steht das Richtige drin, ist der
+Server in Ordnung und der Fehler liegt bei euch. Kommt keines, braucht ihr euren Code gar
+nicht erst anzusehen.
+
+TIP: Legt euch die Aufrufe als `.http`-Datei ins Projekt, neben den Code. Dann ist die
+Gegenprobe beim nächsten Mal ein Klick und keine Sucherei in der Shell-Historie.
+
+[[nachmessen-discovery]]
+=== Schritt 0: Alle Adressen kommen vom Server
+
+Schreibt Endpunkt-Pfade nie ab. Der Server sagt euch selbst, wo alles liegt:
+
+[source,bash]
+----
+curl -s https://auth-dev.htl-leonding.ac.at/realms/htl-leonding/.well-known/openid-configuration | jq
+----
+
+Interessant sind `issuer`, `authorization_endpoint`, `token_endpoint` und `jwks_uri`. Der
+`issuer` ist zugleich der Wert, der später im Token unter `iss` stehen muss — passt er
+nicht, redet ihr mit dem falschen Realm.
+
+[CAUTION]
+====
+*Das Discovery-Dokument beschreibt den Realm, nicht euren Client.* Unter
+`grant_types_supported` steht unter anderem `password` — trotzdem bekommt ihr damit kein
+Token, weil das an *eurem* Client abgeschaltet ist (siehe <<nachmessen-password>>). Was
+der Realm kann und was euer Client darf, sind zwei verschiedene Fragen.
+====
+
+[[nachmessen-dienstkonto]]
+=== Der einfache Fall: Dienstkonto (`client_credentials`)
+
+Nur für Projekte mit Benutzerliste. Ein Aufruf, kein Browser:
+
+[source,bash]
+----
+REALM=https://auth-dev.htl-leonding.ac.at/realms/htl-leonding
+
+curl -s -X POST $REALM/protocol/openid-connect/token \
+  -d grant_type=client_credentials \
+  -d client_id=notenrechner-backend \
+  -d client_secret=$CLIENT_SECRET | jq -r .access_token
+----
+
+Als `.http`-Datei für IntelliJ — Werte in `http-client.env.json`, Geheimnisse in
+`http-client.private.env.json`, und *diese* Datei gehört in `.gitignore`:
+
+[source,http]
+----
+### Token für das Dienstkonto
+POST {{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id={{backendClient}}&client_secret={{backendSecret}}
+
+> {% client.global.set("token", response.body.access_token); %}
+
+### Damit die Mitglieder einer freigegebenen Gruppe holen
+GET {{admin}}/groups/{{groupId}}/members
+Authorization: Bearer {{token}}
+----
+
+Das `> {% … %}` merkt sich das Token, sodass der nächste Aufruf es ohne Kopieren verwendet.
+
+[[nachmessen-login]]
+=== Der Anmeldefall: Authorization Code mit PKCE, von Hand
+
+Diesen Ablauf könnt ihr *nicht* mit einem einzigen `curl` nachstellen — zwischendrin meldet
+sich ein Mensch im Browser an. Das ist keine Schikane, sondern der Punkt: Euer Programm
+bekommt das Passwort nie zu sehen.
+
+In drei Schritten geht es trotzdem.
+
+[source,bash]
+----
+REALM=https://auth-dev.htl-leonding.ac.at/realms/htl-leonding
+CLIENT=notenrechner-frontend
+REDIRECT=http://localhost:4200/callback
+
+# 1. code_verifier und code_challenge erzeugen
+VERIFIER=$(openssl rand -base64 60 | tr -d '\n=+/' | cut -c1-64)
+CHALLENGE=$(printf '%s' "$VERIFIER" | openssl dgst -binary -sha256 \
+            | openssl base64 | tr '+/' '-_' | tr -d '=')
+
+# 2. Diese URL im Browser öffnen und anmelden
+echo "$REALM/protocol/openid-connect/auth?client_id=$CLIENT&response_type=code\
+&redirect_uri=$REDIRECT&scope=openid&code_challenge=$CHALLENGE&code_challenge_method=S256"
+----
+
+Nach der Anmeldung landet ihr auf eurer `redirect_uri` — vermutlich auf einer Fehlerseite,
+weil dort nichts läuft. *Das macht nichts.* Der Wert, den ihr braucht, steht in der
+Adresszeile: `?code=…`. Kopiert ihn heraus:
+
+[source,bash]
+----
+# 3. Code gegen Tokens tauschen — der code_verifier von oben muss dazu
+curl -s -X POST $REALM/protocol/openid-connect/token \
+  -d grant_type=authorization_code \
+  -d client_id=$CLIENT \
+  -d redirect_uri=$REDIRECT \
+  -d code_verifier=$VERIFIER \
+  -d code="$CODE" | jq
+----
+
+[IMPORTANT]
+====
+Der `code` ist *einmal* einlösbar und lebt nur wenige Minuten. Ein zweiter Versuch mit
+demselben Code scheitert — das ist kein Fehler, sondern Absicht. Holt euch dann einen
+neuen über Schritt 2.
+====
+
+[[nachmessen-token]]
+=== Ins Token hineinsehen
+
+Ein Access Token ist Base64-kodiert, nicht verschlüsselt. Ihr könnt es lesen:
+
+[source,bash]
+----
+echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq
+----
+
+WARNING: Ein Token ist ein Zugangsschlüssel, solange es gilt. Klebt es nicht in eine
+beliebige Website, um es „schnell anzuschauen", und schickt es nicht durch einen Chat.
+Lokal dekodieren kostet eine Zeile.
+
+Worauf ihr schaut:
+
+[cols="1,3",options="header"]
+|===
+|Feld |Was es euch sagt
+
+|`iss`
+|Muss exakt der `issuer` aus dem Discovery-Dokument sein. Weicht er ab, redet eure
+Anwendung mit einem anderen Realm
+
+|`aud`
+|Für wen das Token bestimmt ist. Euer Backend *muss* prüfen, dass es selbst darin steht —
+sonst akzeptiert es Tokens fremder Projekte
+
+|`azp`
+|Welcher Client es angefordert hat
+
+|`exp`
+|Ablaufzeitpunkt, fünf Minuten nach der Ausstellung. `date -r $exp` macht daraus eine
+Uhrzeit
+
+|`groups`
+|Eure Klasse als voller Pfad, z. B. `/classes/IF/5BHIF`. *Darf fehlen* — siehe <<token>>
+
+|`realm_access.roles`
+|Enthält `teacher`, wenn die angemeldete Person eine Lehrkraft ist
+|===
+
+[[nachmessen-password]]
+=== Was absichtlich nicht geht
+
+Irgendwann probiert jemand den kürzesten Weg — Benutzername und Passwort direkt an den
+Token-Endpunkt. Der ist abgeschaltet:
+
+[source,bash]
+----
+$ curl -s -X POST $REALM/protocol/openid-connect/token \
+    -d grant_type=password -d client_id=notenrechner-frontend \
+    -d username=… -d password=…
+
+{"error":"unauthorized_client","error_description":"Client not allowed for direct access grants"}
+----
+
+Der Grund ist kein Misstrauen gegen euch: Bei diesem Weg tippt die Person ihr
+*Schulpasswort* in eure Anwendung. Wer das einmal gewohnt ist, tippt es beim nächsten Mal
+in eine, die es einsammelt. Der Umweg über die Anmeldeseite von Keycloak ist genau deshalb
+da — und er ist der einzige, der auch mit zweitem Faktor funktioniert.
+
+[[nachmessen-fehler]]
+=== Vier Antworten, die ihr erkennen solltet
+
+Alle vier sind am laufenden Server gemessen.
+
+[cols="2,3",options="header"]
+|===
+|Antwort |Bedeutung
+
+|`{"error":"unauthorized_client","error_description":"Invalid client or Invalid client credentials"}`
+|Das Client Secret stimmt nicht — falsch abgetippt, oder es wurde erneuert. Meldet euch,
+ihr bekommt den aktuellen Wert
+
+|`{"error":"unauthorized_client","error_description":"Public client not allowed to retrieve service account"}`
+|Ihr fragt mit der *Frontend*-Kennung nach einem Dienstkonto. Das hängt am Backend-Client
+
+|`HTTP 400`, Seite mit „Invalid parameter: redirect_uri"
+|Die Adresse steht nicht in eurer Liste. Keycloak leitet dann *nicht* weiter, sondern
+bleibt stehen — sonst wäre die Liste wertlos
+
+|Weiterleitung auf `…/callback?error=invalid_request&error_description=Missing+parameter%3A+code_challenge_method`
+|PKCE fehlt. Der Fehler kommt hier *als Weiterleitung* zurück, nicht als Seite — eure
+Anwendung sieht ihn also in der Adresszeile
+|===
+
+[TIP]
+====
+*Alle drei ersten Zeilen tragen denselben `error`-Code und bedeuten etwas völlig anderes.*
+Lest die `error_description`, nicht den Code. Wer nur `unauthorized_client` liest, tauscht
+ein Secret, das in Ordnung war.
+====
+
 [[administrieren]]
 == Administrieren
 
@@ -537,6 +750,10 @@ Welche Wege in die Serververwaltung führen, weiß der Betreuer — das betrifft
 [[fehler]]
 == Häufige Fehler
 
+TIP: Bevor ihr in eurem Code sucht: Holt euch das Token von Hand (<<nachmessen>>). Das
+trennt „mein Programm ist falsch" von „der Server ist anders eingerichtet, als ich denke" —
+und die Hälfte der Einträge hier erledigt sich damit in zwei Minuten.
+
 [cols="1,2,2",options="header"]
 |===
 |Meldung |Ursache |Lösung
@@ -551,7 +768,7 @@ Welche Wege in die Serververwaltung führen, weiß der Betreuer — das betrifft
 
 |`401 Unauthorized` am Backend
 |Kein Token, abgelaufen oder Signatur falsch
-|Token auf https://jwt.io[jwt.io] ansehen: `exp` abgelaufen? `iss` richtig?
+|Token ansehen — lokal dekodieren, siehe <<nachmessen-token>>: `exp` abgelaufen? `iss` richtig?
 
 |`401` nach ein paar Minuten Benutzung
 |Das Access Token lebt 300 Sekunden, eure Anwendung erneuert es nicht
