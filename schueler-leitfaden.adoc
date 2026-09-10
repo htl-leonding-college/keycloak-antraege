@@ -20,13 +20,17 @@ Schulkonten bekommt: beantragen, einbauen, verwalten.
 
 [IMPORTANT]
 ====
-*Der Server läuft.* Im Realm `htl-leonding` stehen die Konten der ganzen Schule, die
-Klassengruppen entstehen täglich aus dem Verzeichnis, und die Anmeldung ist mit einem
-echten Schulkonto erprobt. Lauffähige Beispiele liegen unter
-https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos].
+*In eure Anwendung kommt nur, wer ein Konto der HTL Leonding hat.* Das ist die Zusage,
+und sie gilt unabhängig davon, wie gut die Stammdaten einer einzelnen Person gepflegt
+sind. Ihr müsst keine Benutzerverwaltung bauen, keine Passwörter speichern und keine
+Registrierung erfinden — die Anmeldung ist dieselbe wie am Schul-PC.
 
-Auch Benutzerlisten sind verfügbar: Ein Projekt kann die Mitglieder der Gruppen abrufen,
-die ihm freigegeben sind — siehe <<benutzerliste>>.
+Ihr bekommt dabei eine *verlässliche Kennung* der angemeldeten Person, ihre *Klasse* und
+ihre *Rolle*. Damit lässt sich fast jede Autorisierung bauen, die ein Schulprojekt braucht.
+
+Der Server läuft, alle Konten der Schule stehen darin, und die Klassengruppen entstehen
+täglich aus dem Verzeichnis. Lauffähige Beispiele:
+https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos].
 ====
 
 [[was]]
@@ -40,10 +44,11 @@ Schul-PC anmeldet.
 |===
 |Ihr bekommt |Ihr bekommt *nicht*
 
-|Anmeldung mit dem Schulkonto (OpenID Connect)
+|*Anmeldung nur mit einem Schulkonto* (OpenID Connect) — niemand von außen kommt hinein
 |Zugriff auf das Active Directory der Schule
 
-|Benutzername und E-Mail im Token, meist auch Vor- und Nachname
+|*Eine eindeutige Kennung* der angemeldeten Person (`preferred_username`), meist auch
+`email`
 |Matrikelnummer, `objectSid` oder andere interne Kennungen
 
 |*Klasse und Rolle im Token* — ohne Antrag, siehe <<token>>
@@ -56,15 +61,12 @@ Schul-PC anmeldet.
 |das Passwort irgendeines Benutzers — nie
 |===
 
-[WARNING]
+[TIP]
 ====
-*„Meist" ist wörtlich gemeint.* Bei einem Teil der Lehrerkonten sind Vor- und Nachname im
-Verzeichnis der Schule nicht gepflegt — sie kommen dann auch nicht im Token an. Bei
-Schülerkonten ist das nicht vorgekommen.
-
-Rechnet also damit, dass `given_name` und `family_name` fehlen können, und zeigt in dem
-Fall `preferred_username` oder `email` an statt einer leeren Zeile. Dasselbe gilt für
-`groups`, siehe <<token>>.
+*Baut auf `preferred_username`, nicht auf dem Namen.* Der Benutzername ist eindeutig,
+stabil und immer vorhanden — er ist der richtige Schlüssel, wenn ihr in eurer eigenen
+Datenbank etwas zu einer Person speichert. Anzeigenamen sind Kosmetik und können sich
+ändern; eine Kennung nicht.
 ====
 
 [NOTE]
@@ -337,6 +339,24 @@ Eine Benutzerliste braucht nur, wer etwas über Personen wissen muss, die gerade
 angemeldet sind. Das ist selten.
 ====
 
+[NOTE]
+====
+*Zum Anzeigen: `name`, `given_name` und `family_name` können fehlen.* Die Anmeldung und
+alles, was daran hängt — Kennung, Klasse, Rolle — ist davon nicht betroffen; es geht
+ausschließlich darum, was ihr auf den Bildschirm schreibt.
+
+Der Grund liegt im Verzeichnis der Schule: Bei einem Teil der Lehrerkonten sind die
+Namensfelder aus einer alten Datenübernahme nicht gefüllt. Sie werden nachgetragen, aber
+verlasst euch nicht darauf. Bei Schülerkonten ist es nicht vorgekommen.
+
+Eine Zeile genügt:
+
+[source,javascript]
+----
+const anzeige = claims.name ?? claims.preferred_username;
+----
+====
+
 [WARNING]
 ====
 *Rechnet damit, dass `groups` fehlt.* Es ist ein gültiger Zustand, kein Fehler:
@@ -460,9 +480,18 @@ Nachnamen trifft ihn also nicht. Für Teiltreffer die Platzhalter selbst setzen:
 `search=*stuetz*`.
 
 Bei überschaubaren Gruppen ist es einfacher, die Mitgliederliste *einmal* zu holen und im
-eigenen Backend zu filtern. Rechnet dabei damit, dass `firstName` und `lastName` fehlen
-können — nicht jedes Konto im Verzeichnis hat sie. Zeigt dann `email` oder den
-Benutzernamen an, keine leere Zeile.
+eigenen Backend zu filtern.
+====
+
+[NOTE]
+====
+*In einer Mitgliederliste fällt auf, was bei der Anmeldung niemand merkt.* `firstName` und
+`lastName` sind nicht bei jedem Konto gesetzt — betroffen ist ein Teil der Lehrkräfte,
+kein Schülerkonto. Für eine Anmeldung ist das folgenlos, für eine *Liste* nicht: Sortiert
+ihr nach Nachnamen, landen diese Einträge irgendwo, und eine Namenssuche findet sie nicht.
+
+Zwei Zeilen, und die Liste ist wieder brauchbar: als Anzeigename `username` einsetzen, wo
+der Name fehlt, und beim Suchen auch über `username` und `email` vergleichen.
 ====
 
 [CAUTION]

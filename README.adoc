@@ -19,9 +19,12 @@ Hier beantragt ihr für euer Schulprojekt die Anmeldung mit dem Schulkonto
 
 [IMPORTANT]
 ====
-*Der Server läuft*, die Anmeldung mit dem Schulkonto ist erprobt, und auch
-*Benutzerlisten sind verfügbar*: Ein Projekt kann die Mitglieder der Gruppen abrufen, die
-ihm freigegeben wurden. Den Bedarf dafür meldet ihr im Antrag.
+*In eure Anwendung kommt nur, wer ein Konto der HTL Leonding hat.* Keine eigene
+Benutzerverwaltung, keine Passwörter, keine Registrierung — die Anmeldung ist dieselbe wie
+am Schul-PC, und ihr bekommt Kennung, Klasse und Rolle der angemeldeten Person mit.
+
+Braucht euer Projekt darüber hinaus die Mitglieder einer Gruppe, gibt es auch das — meldet
+den Bedarf im Antrag.
 ====
 
 == So läuft es
