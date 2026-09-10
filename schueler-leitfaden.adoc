@@ -70,6 +70,26 @@ was das ist.
 Anträge laufen über ein *GitHub-Issue* mit Vorlage. Kein Mail-Ping-Pong, und ihr könnt
 später nachlesen, was für euer Projekt vereinbart wurde.
 
+[TIP]
+====
+*Hier geht es zum Antrag:*
+https://github.com/htl-leonding-college/keycloak-antraege/issues/new/choose[Neues Issue
+anlegen] — wählt die Vorlage „Client für ein Schülerprojekt beantragen".
+
+Ihr braucht dafür ein GitHub-Konto. Ein freies genügt.
+====
+
+.Wann ihr eine Antwort bekommt
+[IMPORTANT]
+====
+*Innerhalb einer Woche* steht eine Antwort im Issue — entweder die Zugangsdaten oder eine
+Rückfrage.
+
+Ist nach einer Woche nichts passiert, schreibt an mailto:t.stuetz@htl-leonding.ac.at[]. Das
+ist kein Drängeln, sondern der vorgesehene Weg: Dann ist die Benachrichtigung
+untergegangen, und ohne eure Mail fällt das niemandem auf.
+====
+
 [[antrag-daten]]
 === Was ihr angeben müsst
 

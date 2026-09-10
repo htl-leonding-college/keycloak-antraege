@@ -2,6 +2,7 @@ name: Client für ein Schülerprojekt beantragen
 description: Zugang zu den Schulkonten für euer Projekt anfordern
 title: "[Client] <Projektname>"
 labels: ["client-antrag"]
+assignees: ["htl-leonding"]
 body:
   - type: markdown
     attributes:
