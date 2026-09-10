@@ -25,13 +25,8 @@ Klassengruppen entstehen täglich aus dem Verzeichnis, und die Anmeldung ist mit
 echten Schulkonto erprobt. Lauffähige Beispiele liegen unter
 https://github.com/htl-leonding-college/keycloak-demos[keycloak-demos].
 
-Zwei Vorbehalte, die euch betreffen:
-
-* Der Name trägt noch `-dev`. Fällt später die Entscheidung für einen endgültigen
-  Hostnamen, ändert sich die `authority`-URL in eurer Konfiguration — eine Zeile, und ihr
-  erfahrt es rechtzeitig in eurem Issue.
-* *Benutzerlisten gibt es noch nicht* (siehe <<benutzerliste>>). Anmelden, Klasse und
-  Rolle auswerten: alles verfügbar. Die Mitglieder einer Gruppe auflisten: noch nicht.
+Auch Benutzerlisten sind verfügbar: Ein Projekt kann die Mitglieder der Gruppen abrufen,
+die ihm freigegeben sind — siehe <<benutzerliste>>.
 ====
 
 [[was]]
@@ -369,34 +364,63 @@ steht. Der Fehler sieht aus wie ein fehlendes Recht und ist eine Zeile Konfigura
 [[benutzerliste]]
 === Benutzerliste einer Klasse
 
-[WARNING]
+[NOTE]
 ====
-*Diesen Weg gibt es noch nicht.* Die fein granularen Rechte, die ein Dienstkonto auf
-*genau eine* Gruppe beschränken, werden gerade gebaut. Bis dahin wird kein Dienstkonto
-ausgegeben.
+Prüft vorher <<token>>: Für „was darf die *angemeldete* Person sehen" braucht ihr diesen
+Weg nicht. Ein Dienstkonto bekommt nur, wer etwas über Personen wissen muss, die gerade
+nicht angemeldet sind.
 
-*Beantragt den Bedarf trotzdem.* Das Formular fragt danach, und die eingegangenen Anträge
-entscheiden, wie der Zugriff zugeschnitten wird — wer sich erst meldet, wenn es fertig
-ist, bekommt etwas, das zu seinem Projekt nicht passt.
-
-Und prüft vorher <<token>>: Für „was darf die angemeldete Person sehen" braucht ihr diesen
-Weg nicht.
+Euer Dienstkonto sieht *ausschließlich* die Gruppen, die im Antrag freigegeben wurden —
+nicht den ganzen Realm. Jede andere Gruppe antwortet mit `403`.
 ====
 
-So wird er aussehen, wenn er freigegeben ist:
+Der Abruf geht in *drei* Schritten. Der zweite wird gern übersehen: Die
+Verwaltungsschnittstelle kennt Gruppen nur über ihre ID, nie über ihren Pfad.
 
 [source,bash]
 ----
+BASE=https://auth-dev.htl-leonding.ac.at
+REALM=$BASE/realms/htl-leonding
+ADMIN=$BASE/admin/realms/htl-leonding
+
 # 1. Token für das Dienstkonto holen — im Backend, nie im Browser
-curl -X POST https://auth-dev.htl-leonding.ac.at/realms/htl-leonding/protocol/openid-connect/token \
+TOKEN=$(curl -s -X POST $REALM/protocol/openid-connect/token \
   -d grant_type=client_credentials \
   -d client_id=notenrechner-backend \
-  -d client_secret=$CLIENT_SECRET
+  -d client_secret=$CLIENT_SECRET | jq -r .access_token)
 
-# 2. Mitglieder der freigegebenen Gruppe abrufen
-curl -H "Authorization: Bearer $TOKEN" \
-  https://auth-dev.htl-leonding.ac.at/admin/realms/htl-leonding/groups/$GRUPPEN_ID/members
+# 2. Pfad in die Gruppen-ID auflösen
+GROUP_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "$ADMIN/group-by-path/classes/IF/5BHIF" | jq -r .id)
+
+# 3. Mitglieder abrufen
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$ADMIN/groups/$GROUP_ID/members"
 ----
+
+[IMPORTANT]
+====
+*`groups/classes/IF/5BHIF/members` gibt es nicht.* Dort steht eine ID, kein Pfad — der
+Aufruf endet mit `404`, und die Meldung nennt nicht den Grund. Genau deshalb der Umweg
+über `group-by-path`.
+
+Die ID ist stabil. Holt sie einmal beim Start eurer Anwendung, nicht bei jedem Aufruf.
+====
+
+.Und wenn ihr nach Personen sucht
+[NOTE]
+====
+`GET $ADMIN/users?search=…` ist für euer Dienstkonto von sich aus auf eure freigegebenen
+Gruppen verengt. Aber: `search` vergleicht *von vorn* und über `username`, `firstName`,
+`lastName` und `email`. Ein Benutzername sieht aus wie `t.stuetz` — eine Suche nach dem
+Nachnamen trifft ihn also nicht. Für Teiltreffer die Platzhalter selbst setzen:
+`search=*stuetz*`.
+
+Bei überschaubaren Gruppen ist es einfacher, die Mitgliederliste *einmal* zu holen und im
+eigenen Backend zu filtern. Rechnet dabei damit, dass `firstName` und `lastName` fehlen
+können — nicht jedes Konto im Verzeichnis hat sie. Zeigt dann `email` oder den
+Benutzernamen an, keine leere Zeile.
+====
 
 [CAUTION]
 ====
