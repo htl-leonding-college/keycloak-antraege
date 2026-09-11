@@ -327,6 +327,10 @@ abgeglichen
 
 |`realm_access.roles`
 |enthält `teacher`, wenn die angemeldete Person eine Lehrkraft ist
+
+|`display_name`
+|Der Anzeigename aus dem Verzeichnis, im Format `Nachname Vorname`. Als Reserve gedacht,
+falls `name` fehlt — siehe unten
 |===
 
 [IMPORTANT]
@@ -341,20 +345,25 @@ angemeldet sind. Das ist selten.
 
 [NOTE]
 ====
-*Zum Anzeigen: `name`, `given_name` und `family_name` können fehlen.* Die Anmeldung und
-alles, was daran hängt — Kennung, Klasse, Rolle — ist davon nicht betroffen; es geht
-ausschließlich darum, was ihr auf den Bildschirm schreibt.
-
-Der Grund liegt im Verzeichnis der Schule: Bei einem Teil der Lehrerkonten sind die
-Namensfelder aus einer alten Datenübernahme nicht gefüllt. Sie werden nachgetragen, aber
-verlasst euch nicht darauf. Bei Schülerkonten ist es nicht vorgekommen.
-
-Eine Zeile genügt:
+*Zum Anzeigen: nehmt drei Felder, nicht eines.* Die Anmeldung und alles, was daran hängt —
+Kennung, Klasse, Rolle — ist davon nicht betroffen; es geht ausschließlich darum, was ihr
+auf den Bildschirm schreibt.
 
 [source,javascript]
 ----
-const anzeige = claims.name ?? claims.preferred_username;
+const anzeige = claims.name ?? claims.display_name ?? claims.preferred_username;
 ----
+
+Warum drei: `name` ist der gepflegte Name aus Vor- und Nachname und die erste Wahl. Bei
+einem Teil der Lehrerkonten sind diese Felder im Verzeichnis der Schule aus einer alten
+Datenübernahme nicht gefüllt; dort springt `display_name` ein, der Anzeigename desselben
+Eintrags. Er steht im Format `Nachname Vorname` und ohne Umlaute — also gut zum Anzeigen,
+ungeeignet zum Sortieren nach Nachnamen oder zum Zerlegen in zwei Felder. `preferred_username`
+ist die Kennung und trägt immer.
+
+Die dritte Stufe ist keine Theorie: Test- und Sonderkonten werden direkt am Server
+angelegt und kommen nicht aus dem Verzeichnis. Sie haben weder `name` noch `display_name`
+— das bleibt auch dann so, wenn im Verzeichnis irgendwann nichts mehr fehlt.
 ====
 
 [WARNING]
@@ -490,8 +499,21 @@ eigenen Backend zu filtern.
 kein Schülerkonto. Für eine Anmeldung ist das folgenlos, für eine *Liste* nicht: Sortiert
 ihr nach Nachnamen, landen diese Einträge irgendwo, und eine Namenssuche findet sie nicht.
 
-Zwei Zeilen, und die Liste ist wieder brauchbar: als Anzeigename `username` einsetzen, wo
-der Name fehlt, und beim Suchen auch über `username` und `email` vergleichen.
+Dasselbe Ausweichfeld wie im Token gibt es auch hier — aber nur, wenn ihr danach fragt:
+
+[source,bash]
+----
+$ curl -s -H "Authorization: Bearer $TOKEN" \
+    "$ADMIN/groups/$GRUPPEN_ID/members?max=500&briefRepresentation=false" \
+  | jq -r '.[] | .attributes.displayName[0] // .username'
+----
+
+*`briefRepresentation=false` ist der Punkt.* Ohne diesen Parameter antwortet Keycloak in
+einer Kurzform, in der `attributes` gar nicht vorkommt — nicht leer, sondern ganz. Wer ihn
+vergisst, sieht kein `displayName` und hält es für nicht vorhanden.
+
+Beim *Suchen* hilft das nicht: `search` vergleicht nur über `username`, `firstName`,
+`lastName` und `email`. Holt die Liste einmal und filtert im eigenen Backend.
 ====
 
 [CAUTION]
