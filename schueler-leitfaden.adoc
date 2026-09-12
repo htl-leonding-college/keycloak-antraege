@@ -656,9 +656,25 @@ Ein Access Token ist Base64-kodiert, nicht verschlüsselt. Ihr könnt es lesen:
 echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq
 ----
 
-WARNING: Ein Token ist ein Zugangsschlüssel, solange es gilt. Klebt es nicht in eine
-beliebige Website, um es „schnell anzuschauen", und schickt es nicht durch einen Chat.
-Lokal dekodieren kostet eine Zeile.
+WARNING: Ein Token ist ein Zugangsschlüssel, solange es gilt — wer es hat, ist ihr.
+Schickt es nicht durch einen Chat, hängt es an kein Ticket und klebt es in keine beliebige
+Website. Lokal dekodieren kostet eine Zeile.
+
+Bequemer und zum Lernen anschaulicher ist https://jwt.io[jwt.io]: Header, Payload und
+Signaturstatus stehen nebeneinander, Zeitangaben sind ausgeschrieben. Die Seite dekodiert
+nach Angabe ihrer Betreiber im Browser und schickt das Token nicht an einen Server.
+
+Zwei Einschränkungen gehören dazu:
+
+* *Ihr müsst der Seite vertrauen* — und jedem Skript und jeder Browser-Erweiterung, die
+  darauf zugreifen darf. „Dekodiert lokal" ist eine Zusage, keine Eigenschaft, die ihr von
+  außen nachprüfen könnt.
+* *Das Token hinterlässt Spuren* — in der Zwischenablage, im Kopierverlauf, in dem
+  Bildschirmfoto, das ihr fürs Protokoll macht.
+
+Für *euer eigenes* Token beim Ausprobieren ist das vertretbar; es lebt ohnehin nur 300
+Sekunden. Nicht für ein Token, das Daten anderer trägt, und *nie* für ein Refresh Token
+oder ein Client Secret — die gelten länger und öffnen mehr.
 
 Worauf ihr schaut:
 
