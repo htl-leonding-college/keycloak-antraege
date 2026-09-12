@@ -130,10 +130,25 @@ untergegangen, und ohne eure Mail fällt das niemandem auf.
 |ja/nein, und wenn ja: *welche* Gruppe — voller Pfad
 |`ja, /classes/IF/5BHIF`
 
+|Externe nötig?
+|ob auch Personen *ohne* Schulkonto Zugang brauchen — und wer sie am Projektende sperrt
+|`nein`
+
 |Projektende
 |wann der Client gelöscht werden kann
 |`Juni 2027`
 |===
+
+[NOTE]
+====
+*Personen ohne Schulkonto sind möglich, aber nicht automatisch.* Standard ist: Es meldet
+sich an, wer ein HTL-Konto hat. Braucht euer Projekt darüber hinaus Eltern, Partnerbetriebe
+oder Testpersonen, sagt es *im Antrag* — je nach Zahl und Dauer sieht der Aufbau anders aus,
+und nachträglich ist die Umstellung teurer als am Anfang. Zwei Dinge, die ihr dabei wissen
+müsst: Für solche Konten gibt es derzeit **kein „Kennwort vergessen"** — jedes Kennwort wird
+von Hand übergeben. Und jemand muss sie am Projektende sperren; wer das ist, gehört in den
+Antrag.
+====
 
 [[antrag-redirect]]
 === Redirect-URIs richtig angeben

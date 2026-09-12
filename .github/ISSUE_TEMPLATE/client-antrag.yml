@@ -93,6 +93,36 @@ body:
     validations:
       required: false
 
+  - type: dropdown
+    id: externe
+    attributes:
+      label: Braucht ihr Zugang für Personen ohne Schulkonto?
+      description: |
+        Gemeint sind Nutzer, die kein HTL-Konto haben — Eltern, Partnerbetriebe,
+        Testpersonen, Jurymitglieder. Für alle MIT Schulkonto ist hier „Nein" richtig.
+        Sagt es auch, wenn ihr noch unsicher seid: Die Antwort ändert den Aufbau, und
+        nachträglich ist sie teurer als am Anfang.
+      options:
+        - "Nein"
+        - "Ja"
+        - "Wissen wir noch nicht"
+    validations:
+      required: true
+
+  - type: textarea
+    id: externe-details
+    attributes:
+      label: Wer, wie viele, wie lange?
+      description: |
+        Nur ausfüllen, wenn oben nicht „Nein". Wer sind diese Personen, wie viele
+        ungefähr, bis wann brauchen sie Zugang — und wer sperrt sie, wenn euer
+        Projekt endet?
+      placeholder: |
+        ca. 15 Betreuer aus Partnerbetrieben, bis Juni 2027,
+        Sperren durch die betreuende Lehrkraft
+    validations:
+      required: false
+
   - type: input
     id: projektende
     attributes:
