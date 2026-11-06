@@ -780,7 +780,9 @@ Wie viel ihr selbst verwaltet, hängt von der Größe des Projekts ab.
 === Einfaches Projekt
 
 Ihr habt einen Client im Realm `htl-leonding` und verwaltet ihn nicht selbst. Änderungen
-— neue Redirect-URI, weiterer Port, zusätzliche Gruppe — laufen über ein neues Issue.
+— neue Redirect-URI, weiterer Port, zusätzliche Gruppe — laufen als Kommentar in eurem
+Antrags-Issue. Es bleibt offen, solange das Projekt läuft, und wird erst geschlossen, wenn
+der Client entfernt wird.
 
 Das ist kein Misstrauen: Im Realm `htl-leonding` hängen die echten Schulkonten. Wer dort
 Rechte hat, hat sie für alle.

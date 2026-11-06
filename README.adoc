@@ -36,6 +36,8 @@ den Bedarf im Antrag.
   Ihr braucht dafür nur ein GitHub-Konto.
 . Ihr bekommt die Antwort im Issue: Client-Kennung und, falls beantragt, die Zugangsdaten
   für die Benutzerliste auf einem sicheren Weg (niemals im Issue selbst).
+. Das Issue bleibt offen, solange das Projekt läuft — Änderungen am Client kommen als
+  Kommentar dorthin. Geschlossen wird es am Projektende, wenn der Client entfernt wird.
 
 == Die drei Regeln, an denen Anträge scheitern
 
